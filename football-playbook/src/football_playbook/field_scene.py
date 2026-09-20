@@ -82,6 +82,17 @@ class FieldView(QGraphicsView):
         self._draw_points: list[QPointF] = []
         self._preview: RouteItem | None = None
 
+    def _fit_field(self) -> None:
+        self.fitInView(self.scene().sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self._fit_field()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._fit_field()
+
     def set_mode(self, mode: str) -> None:
         self._cancel_drawing()
         self.mode = mode

@@ -1,0 +1,40 @@
+name: Football Playbook Creator - Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "football-playbook/**"
+      - ".github/workflows/build-football-playbook-exe.yml"
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: football-playbook
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build EXE
+        run: >
+          pyinstaller --noconfirm --onefile --windowed
+          --name FootballPlaybookCreator
+          main.py
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FootballPlaybookCreator-windows-exe
+          path: football-playbook/dist/FootballPlaybookCreator.exe

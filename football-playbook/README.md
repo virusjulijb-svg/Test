@@ -39,6 +39,28 @@ python main.py
 
 Ausgewählte Elemente lassen sich mit `Entf`/`Rückschritt` löschen, ein laufender Linienzug mit `Esc` abbrechen. Ein Doppelklick im Auswahl-Modus auf einen Spieler bzw. ein Textlabel öffnet die Umbenennen-Bearbeitung.
 
+## Als Windows-.exe installieren
+
+Die App ist reines Python und läuft nicht "nativ" als .exe – mit [PyInstaller](https://pyinstaller.org) lässt sich daraus aber eine eigenständige Windows-.exe bauen.
+
+**Automatisch per GitHub Actions (empfohlen):**
+
+Im Repository liegt der Workflow `.github/workflows/build-football-playbook-exe.yml`. Er baut die .exe auf einem echten Windows-Runner:
+
+1. Im GitHub-Repo auf **Actions → Football Playbook Creator - Windows EXE → Run workflow** klicken (oder er läuft automatisch bei einem Push auf `main`, der Dateien unter `football-playbook/` ändert).
+2. Nach Abschluss im Run das Artifact **FootballPlaybookCreator-windows-exe** herunterladen – darin liegt `FootballPlaybookCreator.exe`.
+
+**Manuell auf einem Windows-Rechner:**
+
+```powershell
+cd football-playbook
+pip install -r requirements.txt
+pip install pyinstaller
+pyinstaller --noconfirm --onefile --windowed --name FootballPlaybookCreator main.py
+```
+
+Die fertige `.exe` liegt danach in `dist\FootballPlaybookCreator.exe` und lässt sich ohne installiertes Python weitergeben/starten.
+
 ## Projektstruktur
 
 ```
@@ -56,4 +78,4 @@ football-playbook/
 
 ## Hinweis zu diesem Repository
 
-Die App wurde in dieser Umgebung ohne sichtbares Display (Qt "offscreen"-Plattform) automatisiert getestet: Formationen einfügen, Routen/Blocks/Motion/Text zeichnen, Play-Wechsel, JSON-Speichern/Laden und PDF-Export wurden per Skript durchgespielt und die erzeugte PDF-Seite visuell geprüft. Ein interaktiver Test mit echter Maussteuerung in einem sichtbaren Fenster war hier nicht möglich.
+Die App wurde in dieser (Linux-)Umgebung automatisiert getestet: einmal ohne Display (Qt "offscreen"-Plattform) und zusätzlich in einem echten, sichtbaren Fenster über einen virtuellen X-Server (Xvfb) inkl. Screenshots. Geprüft wurden Formationen einfügen, Routen/Blocks/Motion/Text zeichnen, Play-Wechsel, JSON-Speichern/Laden und PDF-Export. Eine manuelle Maus-/Tastatur-Bedienung durch einen Menschen fand dabei nicht statt.
