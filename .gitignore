@@ -10,3 +10,8 @@
 local.properties
 /app/build
 /app/release
+
+# Python / football-playbook
+__pycache__/
+*.pyc
+.venv/
