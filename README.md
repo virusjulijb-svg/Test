@@ -28,3 +28,9 @@ Android-App (Kotlin, Jetpack Compose) zum Erstellen und Verwalten von Yu-Gi-Oh!-
 ## Hinweis zu diesem Repository
 
 Diese Umgebung hat keinen Zugriff auf das Android SDK und keine Internetverbindung zu Googles Maven-Repository (`dl.google.com` ist per Netzwerkrichtlinie blockiert). Der Code wurde daher sorgfältig von Hand geschrieben und geprüft, konnte hier aber **nicht** mit `./gradlew assembleDebug` gebaut oder in einem Emulator getestet werden. Bitte beim ersten Öffnen in Android Studio auf Compiler-/Sync-Fehler prüfen.
+
+## Webapp (YGO Lab)
+
+Im Ordner [`webapp/`](webapp/README.md) liegt zusätzlich eine Browser-App mit Deckbuilder,
+Consistency Lab, Combo Lab und einem Duell-Bot, der gängige Handtraps und Board-Breaker spielt.
+Start: `cd webapp && npm install && npm run dev`.
