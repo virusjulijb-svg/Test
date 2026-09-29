@@ -28,7 +28,26 @@ Die App passt sich an kleine Bildschirme und Touch-Bedienung an:
 
 Zum Testen auf dem eigenen Handy im selben WLAN: `npm run build && npx vite preview --host` und die
 angezeigte Netzwerk-Adresse öffnen. Der Service Worker (Offline-Start, Installation) funktioniert
-außerhalb von `localhost` nur über HTTPS, z. B. nach dem Hochladen des `dist/`-Ordners auf GitHub Pages.
+außerhalb von `localhost` nur über HTTPS, siehe nächster Abschnitt.
+
+## Veröffentlichen mit HTTPS (GitHub Pages)
+
+Der Workflow `.github/workflows/webapp-pages.yml` baut die App bei jedem Push auf `main`, der `webapp/`
+betrifft, führt Typprüfung und Tests aus und veröffentlicht `dist/` über GitHub Pages. Die Adresse ist
+dann **https://virusjulijb-svg.github.io/Test/** (HTTPS stellt GitHub automatisch bereit).
+
+Einmalig im Repository einstellen: **Settings → Pages → Build and deployment → Source: „GitHub Actions“**.
+Danach genügt ein Merge nach `main` (oder „Run workflow“ unter *Actions*). Pull Requests werden nur
+gebaut und getestet, nicht veröffentlicht.
+
+## Kartensprache
+
+Standard ist Deutsch (⚙ → Kartensprache). Die deutschen Namen und Texte kommen ebenfalls von der
+YGOPRODeck-API (`cardinfo.php?language=de`) und werden nach dem englischen Datensatz im Hintergrund
+geladen. Laut API-Dokumentation sind nicht alle Karten übersetzt; diese bleiben englisch. Kartenbilder
+gibt es dort nur mit englischem Kartentext. Die Suche findet Karten unter deutschem und englischem
+Namen. Handtrap- und Effekterkennung arbeiten immer mit dem englischen Originaltext; bei der
+Effektauswahl erscheint der deutsche Text, wenn er gleich viele Effekte ergibt, sonst das Original.
 
 ## Starten
 
@@ -97,7 +116,7 @@ e2e/            Playwright-Tests (smoke.mjs Desktop, mobile.mjs Handy/Tablet); d
 public/         Manifest, Icons und Service Worker für die Installation als App
 ```
 
-Die Texte im Testdatensatz `e2e/fixtures/cardinfo.json` sind gekürzt und nur für Tests gedacht;
-„Test Starter“ und „Test Extender“ sind erfundene Karten.
+Die Texte in den Testdatensätzen `e2e/fixtures/cardinfo.json` und `cardinfo-de.json` sind gekürzt
+bzw. frei formuliert und nur für Tests gedacht; „Test Starter“ und „Test Extender“ sind erfundene Karten.
 
 Inoffizielles Fanprojekt, nicht mit Konami verbunden.

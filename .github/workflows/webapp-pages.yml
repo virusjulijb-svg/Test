@@ -1,0 +1,56 @@
+# Baut die Webapp (webapp/) und veröffentlicht sie über GitHub Pages mit HTTPS:
+# https://virusjulijb-svg.github.io/Test/
+# Einmalig nötig: Settings → Pages → Build and deployment → Source: „GitHub Actions“.
+name: Webapp veröffentlichen
+
+on:
+  push:
+    branches: [main]
+    paths: ['webapp/**', '.github/workflows/webapp-pages.yml']
+  pull_request:
+    paths: ['webapp/**', '.github/workflows/webapp-pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webapp
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: webapp/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v6
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: webapp/dist
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

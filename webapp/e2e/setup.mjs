@@ -14,6 +14,7 @@ try {
 
 export const root = new URL('..', import.meta.url).pathname;
 const fixture = readFileSync(path.join(root, 'e2e/fixtures/cardinfo.json'), 'utf8');
+const fixtureDe = readFileSync(path.join(root, 'e2e/fixtures/cardinfo-de.json'), 'utf8');
 export const shots = path.join(root, 'e2e/screenshots');
 mkdirSync(shots, { recursive: true });
 
@@ -39,6 +40,7 @@ export async function launch(contextOptions) {
   await context.route('https://db.ygoprodeck.com/**', (route) => {
     const url = route.request().url();
     if (url.includes('checkDBVer')) return route.fulfill({ json: [{ database_version: 'test-1', last_update: '2026-09-01' }] });
+    if (url.includes('language=de')) return route.fulfill({ body: fixtureDe, contentType: 'application/json' });
     return route.fulfill({ body: fixture, contentType: 'application/json' });
   });
   await context.route('https://images.ygoprodeck.com/**', (route) => route.fulfill({ status: 404, body: '' }));

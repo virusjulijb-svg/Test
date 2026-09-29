@@ -2,14 +2,24 @@ export type BanStatus = 'Forbidden' | 'Limited' | 'Semi-Limited';
 export type BanFormat = 'tcg' | 'ocg';
 
 /** Kompakte Kartendaten, abgeleitet aus der YGOPRODeck-API (cardinfo.php). */
+export type CardLang = 'de' | 'en';
+
 export interface Card {
   id: number;
+  /** Name in der Anzeigesprache (Deutsch, falls übersetzt und gewählt) */
   name: string;
+  /** Englischer Originalname: Grundlage für Handtrap-Erkennung und .ydk-Vorlagen */
+  nameEn: string;
   /** z. B. "Effect Monster", "Spell Card", "Link Monster" */
   type: string;
   /** z. B. "effect", "spell", "trap", "fusion", "xyz", "link" */
   frameType: string;
+  /** Kartentext in der Anzeigesprache */
   desc: string;
+  /** Englischer Originaltext: Grundlage der Effekterkennung */
+  descEn: string;
+  /** Deutsche Übersetzung vorhanden */
+  hasDe?: boolean;
   atk?: number;
   def?: number;
   level?: number;

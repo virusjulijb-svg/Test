@@ -9,7 +9,7 @@ import {
   ZONE_NAMES, type Difficulty, type DuelCtx, type DuelState, type Inst, type PlayerAction,
 } from '../lib/duel';
 import { BOT_TEMPLATES, INTERRUPTIONS, INTERRUPTION_BY_ID, interruptionFor, templateToIds } from '../lib/interruptions';
-import { ALL_TAGS, splitEffects, TAG_LABELS } from '../lib/tagging';
+import { ALL_TAGS, effectParts, TAG_LABELS } from '../lib/tagging';
 import type { ActionKind, ComboStep, Deck, EffectTag, Zone } from '../lib/types';
 import { useIsMobile, useIsTouch } from '../hooks';
 import { useStore } from '../store';
@@ -510,13 +510,13 @@ function ActionMenu({ s, inst, zone, onClose, onAction, onMove, onPosition }: {
 function ActivateDialog({ inst, zone, onClose, onActivate }: { inst: Inst; zone: Zone; onClose: () => void; onActivate: (tags: EffectTag[], text?: string) => void }) {
   const { db } = useStore();
   const card = db.get(inst.id)!;
-  const effects = splitEffects(card.desc);
+  const effects = effectParts(card);
   const firstTagged = effects.findIndex((e) => e.tags.length > 0);
   const [choice, setChoice] = useState<number>(firstTagged >= 0 ? firstTagged : -1);
   const [tags, setTags] = useState<EffectTag[]>(firstTagged >= 0 ? effects[firstTagged].tags : []);
   return (
     <Modal title={`${card.name} aktivieren (${ZONE_NAMES[zone]})`} onClose={onClose} wide>
-      <p className="muted small">Wähle den Effekt. Die Häkchen bestimmen, auf welche Handtraps der Bot reagieren darf (z. B. Ash Blossom bei „Deck → Hand“).</p>
+      <p className="muted small">Wähle den Effekt{effects[0]?.english ? ' (englischer Originaltext, weil die Übersetzung anders gegliedert ist)' : ''}. Die Häkchen bestimmen, auf welche Handtraps der Bot reagieren darf (z. B. Ash Blossom bei „Deck → Hand“).</p>
       <div className="effects">
         {effects.map((e, i) => (
           <button key={i} className={`effect ${choice === i ? 'on' : ''}`} onClick={() => { setChoice(i); setTags(e.tags); }}>

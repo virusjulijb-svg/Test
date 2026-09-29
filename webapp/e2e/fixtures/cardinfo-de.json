@@ -1,0 +1,24 @@
+{
+ "data": [
+  {
+   "id": 46986414,
+   "name": "Dunkler Magier",
+   "desc": "Der ultimative Zauberer in Bezug auf Angriff und Verteidigung."
+  },
+  {
+   "id": 7084129,
+   "name": "Magierstab",
+   "desc": "Wenn diese Karte als Normalbeschwörung beschworen wird: Du kannst 1 Zauber-/Fallenkarte, die „Dunkler Magier“ erwähnt, von deinem Deck deiner Hand hinzufügen."
+  },
+  {
+   "id": 14558127,
+   "name": "Aschblüte & Freudiger Frühling",
+   "desc": "Wenn eine Karte oder ein Effekt aktiviert wird, die/der einen dieser Effekte beinhaltet (Schnelleffekt): Du kannst diese Karte abwerfen; annulliere jenen Effekt. Du kannst diesen Effekt von „Aschblüte & Freudiger Frühling“ nur einmal pro Spielzug verwenden."
+  },
+  {
+   "id": 14824020,
+   "name": "Test-Extender",
+   "desc": "Falls diese Karte in deinem Friedhof ist: Du kannst diese Karte als Spezialbeschwörung beschwören. Zusatzsatz ohne Gegenstück. Du kannst diesen Effekt nur einmal pro Spielzug verwenden."
+  }
+ ]
+}

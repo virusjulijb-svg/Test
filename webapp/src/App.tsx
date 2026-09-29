@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { loadCards } from './lib/api';
+import { Modal } from './components/Modal';
+import { loadCards, loadGerman, type GermanTexts } from './lib/api';
 import { CardDb } from './lib/carddb';
 import { newDeck } from './lib/deck';
 import { loadState, saveState, type Persisted, type Settings } from './lib/storage';
-import type { Combo, Deck } from './lib/types';
+import type { Card, Combo, Deck } from './lib/types';
 import { StoreContext, type Store } from './store';
 import DeckBuilder from './pages/DeckBuilder';
 import ConsistencyLab from './pages/ConsistencyLab';
@@ -24,7 +25,10 @@ const tabFromHash = (): Tab => {
 };
 
 export default function App() {
-  const [db, setDb] = useState<CardDb | null>(null);
+  const [cards, setCards] = useState<Card[] | null>(null);
+  const [version, setVersion] = useState('');
+  const [german, setGerman] = useState<GermanTexts | null | 'loading' | 'error'>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [dbInfo, setDbInfo] = useState('');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [status, setStatus] = useState('Lade Kartendatenbank …');
@@ -36,13 +40,28 @@ export default function App() {
     setLoadError(null);
     loadCards({ force, onStatus: setStatus })
       .then((r) => {
-        setDb(new CardDb(r.cards));
+        setCards(r.cards);
+        setVersion(r.version);
+        if (force) setGerman(null);
         setDbInfo(`${r.cards.length.toLocaleString('de-DE')} Karten · DB-Version ${r.version}${r.source === 'cache-offline' ? ' · offline (Cache)' : ''}`);
       })
       .catch((e: unknown) => setLoadError(e instanceof Error ? e.message : String(e)));
   }, []);
 
   useEffect(() => load(), [load]);
+
+  // Deutsche Texte nachladen, sobald die Grunddaten da sind (die App ist bis dahin englisch nutzbar)
+  const lang = state.settings.cardLang;
+  useEffect(() => {
+    if (lang !== 'de' || !version || german !== null) return;
+    setGerman('loading');
+    loadGerman(version).then((g) => setGerman(g ?? 'error'));
+  }, [lang, version, german]);
+
+  const db = useMemo(
+    () => (cards ? new CardDb(cards, lang === 'de' && german instanceof Map ? german : null) : null),
+    [cards, german, lang],
+  );
   useEffect(() => saveState(state), [state]);
   useEffect(() => {
     const h = () => setTab(tabFromHash());
@@ -142,14 +161,8 @@ export default function App() {
               {state.decks.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           </label>
-          <label>
-            <span className="hide-mobile">Banlist </span>
-            <select aria-label="Banlist" value={state.settings.format} onChange={(e) => store.setSettings({ format: e.target.value as Settings['format'] })}>
-              <option value="tcg">TCG</option>
-              <option value="ocg">OCG</option>
-            </select>
-          </label>
-          <button className="ghost small" title="Datenbank neu laden" onClick={() => { setDb(null); load(true); }}>⟳</button>
+          <span className="muted small hide-mobile">{state.settings.format.toUpperCase()} · {lang.toUpperCase()}</span>
+          <button className="ghost small" aria-label="Einstellungen" title="Einstellungen" onClick={() => setSettingsOpen(true)}>⚙</button>
         </div>
       </header>
       <main>
@@ -162,6 +175,30 @@ export default function App() {
         {dbInfo} · Kartendaten und Bilder: <a href="https://ygoprodeck.com/api-guide/" target="_blank" rel="noreferrer">YGOPRODeck API</a>.
         Inoffizielles Fanprojekt, nicht mit Konami verbunden.
       </footer>
+      {settingsOpen && (
+        <Modal title="Einstellungen" onClose={() => setSettingsOpen(false)}>
+          <label className="field">Kartensprache
+            <select value={lang} onChange={(e) => store.setSettings({ cardLang: e.target.value as Settings['cardLang'] })}>
+              <option value="de">Deutsch</option>
+              <option value="en">Englisch</option>
+            </select>
+          </label>
+          <p className="muted small">
+            {lang === 'en' ? 'Namen und Texte im englischen Original.'
+              : german === 'loading' ? 'Deutsche Texte werden geladen …'
+              : german === 'error' ? 'Deutsche Texte sind gerade nicht verfügbar; die App zeigt die englischen Texte.'
+              : `${store.db.germanCount.toLocaleString('de-DE')} von ${store.db.size.toLocaleString('de-DE')} Karten auf Deutsch; nicht übersetzte Karten bleiben englisch. Kartenbilder gibt es nur mit englischem Text.`}
+          </p>
+          <label className="field">Banlist
+            <select value={state.settings.format} onChange={(e) => store.setSettings({ format: e.target.value as Settings['format'] })}>
+              <option value="tcg">TCG</option>
+              <option value="ocg">OCG</option>
+            </select>
+          </label>
+          <p className="muted small">{dbInfo}</p>
+          <button className="ghost" onClick={() => { setSettingsOpen(false); setCards(null); load(true); }}>Kartendatenbank neu laden</button>
+        </Modal>
+      )}
       {toastMsg && <div className="toast" role="status" onClick={() => setToastMsg(null)}>{toastMsg}</div>}
     </StoreContext.Provider>
   );

@@ -8,7 +8,7 @@ import {
   type StepAnalysis,
 } from '../lib/combo';
 import { INTERRUPTIONS, INTERRUPTION_BY_ID } from '../lib/interruptions';
-import { ALL_TAGS, splitEffects, TAG_LABELS } from '../lib/tagging';
+import { ALL_TAGS, effectParts, TAG_LABELS } from '../lib/tagging';
 import type { ActionKind, Combo, ComboStep, Zone } from '../lib/types';
 import { uid } from '../lib/util';
 import { useStore } from '../store';
@@ -271,13 +271,13 @@ function StepEditor({ initial, onClose, onSave }: { initial?: ComboStep; onClose
   const { db } = useStore();
   const [step, setStep] = useState<ComboStep>(initial ?? newStep(-1));
   const card = db.get(step.cardId);
-  const effects = card ? splitEffects(card.desc) : [];
+  const effects = card ? effectParts(card) : [];
   const set = (p: Partial<ComboStep>) => setStep((s) => ({ ...s, ...p }));
 
   const pickCard = (id: number) => {
     const c = db.get(id);
     const extra = c && isExtraDeckCard(c);
-    const tagged = c ? splitEffects(c.desc).find((e) => e.tags.length) : undefined;
+    const tagged = c ? effectParts(c).find((e) => e.tags.length) : undefined;
     set({
       cardId: id,
       action: extra ? 'specialSummon' : step.action,
@@ -310,7 +310,7 @@ function StepEditor({ initial, onClose, onSave }: { initial?: ComboStep; onClose
           </div>
           {step.action === 'activate' && effects.length > 0 && (
             <>
-              <h4>Welcher Effekt?</h4>
+              <h4>Welcher Effekt?{effects[0]?.english && <span className="muted small"> (englischer Originaltext)</span>}</h4>
               <div className="effects">
                 {effects.map((e, i) => (
                   <button key={i} className={`effect ${e.tags.join() === step.tags.join() && e.tags.length ? 'on' : ''}`} onClick={() => set({ tags: e.tags })}>

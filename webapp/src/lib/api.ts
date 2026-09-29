@@ -1,6 +1,9 @@
 import { idbGet, idbSet } from './idb';
 import type { BanStatus, Card } from './types';
 
+/** Deutsche Namen und Texte, per Karten-ID (YGOPRODeck: cardinfo.php?language=de) */
+export type GermanTexts = Map<number, { name: string; desc: string }>;
+
 // Öffentliche YGOPRODeck-API (https://ygoprodeck.com/api-guide/).
 // Die komplette Kartenliste wird einmal geladen und lokal in IndexedDB gespeichert;
 // danach wird nur noch die Datenbankversion abgefragt.
@@ -37,9 +40,11 @@ export function compactCard(c: ApiCard): Card {
   const card: Card = {
     id: c.id,
     name: c.name,
+    nameEn: c.name,
     type: c.type,
     frameType: c.frameType,
     desc: c.desc ?? '',
+    descEn: c.desc ?? '',
     race: c.race ?? '',
     imageIds: c.card_images?.length ? c.card_images.map((i) => i.id) : [c.id],
   };
@@ -61,7 +66,7 @@ interface Cached {
   cards: Card[];
 }
 
-const CACHE_KEY = 'cards-v1';
+const CACHE_KEY = 'cards-v2';
 const CHECK_INTERVAL = 12 * 60 * 60 * 1000;
 
 export interface LoadResult {
@@ -110,4 +115,37 @@ export async function loadCards(opts: { force?: boolean; onStatus?: (s: string) 
     if (cached) return { cards: cached.cards, version: cached.version, source: 'cache-offline' };
     throw e;
   }
+}
+
+interface CachedDe {
+  version: string;
+  checkedAt: number;
+  entries: [number, string, string][];
+}
+
+const DE_KEY = 'cards-de-v1';
+
+/**
+ * Lädt deutsche Namen und Kartentexte. Laut API-Dokumentation sind nicht alle Karten übersetzt
+ * und Bilder gibt es nur auf Englisch; fehlende Übersetzungen bleiben englisch.
+ * Gibt null zurück, wenn die Daten nicht verfügbar sind.
+ */
+export async function loadGerman(version: string, force = false): Promise<GermanTexts | null> {
+  let cached: CachedDe | undefined;
+  try { cached = await idbGet<CachedDe>(DE_KEY); } catch { cached = undefined; }
+  const fresh = cached && !force && (cached.version === version || Date.now() - cached.checkedAt < CHECK_INTERVAL);
+  if (!fresh) {
+    try {
+      const res = await fetch(`${API_BASE}/cardinfo.php?language=de`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = (await res.json()) as { data?: { id: number; name?: string; desc?: string }[] };
+      if (!Array.isArray(json.data)) throw new Error('unerwartete Antwort');
+      const entries = json.data.filter((c) => c.name).map((c) => [c.id, c.name!, c.desc ?? ''] as [number, string, string]);
+      cached = { version, checkedAt: Date.now(), entries };
+      await idbSet(DE_KEY, cached).catch(() => {});
+    } catch {
+      if (!cached) return null;
+    }
+  }
+  return cached ? new Map(cached.entries.map(([id, name, desc]) => [id, { name, desc }])) : null;
 }

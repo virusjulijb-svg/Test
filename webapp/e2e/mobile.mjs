@@ -76,8 +76,8 @@ try {
 
   // Consistency Lab
   await nav('Consistency Lab');
-  await page.locator('.cat-table tr', { hasText: 'Test Starter' }).getByRole('button', { name: 'Starter' }).tap();
-  await page.locator('.cat-table tr', { hasText: "Magician's Rod" }).getByRole('button', { name: 'Starter' }).tap();
+  await page.locator('.cat-table tr', { has: page.locator('[data-card="Test Starter"]') }).getByRole('button', { name: 'Starter' }).tap();
+  await page.locator('.cat-table tr', { has: page.locator(`[data-card="Magician's Rod"]`) }).getByRole('button', { name: 'Starter' }).tap();
   const cell = await page.locator('.results-table').first().locator('tbody tr').first().locator('td').nth(1).innerText();
   if (!cell.includes('57,7')) throw new Error(`Consistency Lab: ${cell}`);
   await noOverflow('Consistency Lab');
@@ -122,7 +122,7 @@ try {
 
   // Karte manuell per Antippen spielen: Normalbeschwörung von Magician's Rod
   await page.locator('.player-area .hand [data-card="Magician\'s Rod"]').tap();
-  await page.getByRole('dialog', { name: "Magician's Rod" }).getByRole('button', { name: 'Normalbeschwörung' }).tap();
+  await page.getByRole('dialog', { name: 'Magierstab' }).getByRole('button', { name: 'Normalbeschwörung' }).tap();
   await page.locator('.player-area .field-row [data-card="Magician\'s Rod"]').waitFor();
   // Combo-Wiedergabe liegt unter dem Spielfeld: Schritt 1 überspringen, Schritt 2 ausführen
   await page.getByRole('button', { name: 'Überspringen' }).tap();

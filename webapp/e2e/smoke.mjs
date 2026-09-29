@@ -27,6 +27,23 @@ try {
   await page.locator('.deck-view [data-card="Dark Magician"]').waitFor();
   step('Karte über die Suche hinzugefügt');
 
+  // Deutsche Kartentexte (Standard) und Umschalten auf Englisch
+  await page.locator('.deck-view [data-card="Dark Magician"]').hover();
+  await page.locator('.detail h3', { hasText: 'Dunkler Magier' }).waitFor();
+  await page.getByLabel('Kartensuche').fill('dunkler');
+  await page.locator('.results [data-card="Dark Magician"]').waitFor();
+  await page.getByRole('button', { name: 'Einstellungen' }).click();
+  await page.getByText('4 von 25 Karten auf Deutsch').waitFor();
+  await page.getByRole('dialog', { name: 'Einstellungen' }).locator('select').first().selectOption('en');
+  await page.getByRole('dialog', { name: 'Einstellungen' }).getByRole('button', { name: 'Schließen' }).click();
+  await page.locator('.deck-view [data-card="Dark Magician"]').hover();
+  await page.locator('.detail h3', { hasText: /^Dark Magician$/ }).waitFor();
+  await page.getByRole('button', { name: 'Einstellungen' }).click();
+  await page.getByRole('dialog', { name: 'Einstellungen' }).locator('select').first().selectOption('de');
+  await page.getByRole('dialog', { name: 'Einstellungen' }).getByRole('button', { name: 'Schließen' }).click();
+  await page.getByLabel('Kartensuche').fill('dark magician');
+  step('Deutsche Namen/Texte, Suche auf Deutsch, Umschalten auf Englisch');
+
   // Spielerdeck importieren
   const main = PLAYER_MAIN;
   await importDeck('Testdeck', ydk(main, PLAYER_EXTRA));
@@ -40,7 +57,7 @@ try {
   // Consistency Lab
   await page.getByRole('button', { name: 'Consistency Lab' }).click();
   for (const name of ["Magician's Rod", 'Test Starter']) {
-    await page.locator('.cat-table tr', { hasText: name }).getByRole('button', { name: 'Starter' }).click();
+    await page.locator('.cat-table tr', { has: page.locator(`[data-card="${name}"]`) }).getByRole('button', { name: 'Starter' }).click();
   }
   const firstCell = page.locator('.results-table').first().locator('tbody tr').first().locator('td').nth(1);
   const txt = await firstCell.innerText();
@@ -89,7 +106,7 @@ try {
   step('Duell: Bot unterbricht die Suche von Magician’s Rod');
   await shot('4-duel-interrupt');
   await page.getByRole('button', { name: 'Zulassen' }).click();
-  await page.locator('.log li', { hasText: 'Ash Blossom & Joyous Spring: annulliert' }).waitFor();
+  await page.locator('.log li', { hasText: 'Aschblüte & Freudiger Frühling: annulliert' }).waitFor();
   await page.getByText('Combo abgeschlossen').waitFor();
   await page.getByRole('button', { name: 'Zug beenden' }).click();
   await page.getByText('Auswertung').waitFor();

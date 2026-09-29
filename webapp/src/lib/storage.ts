@@ -1,7 +1,9 @@
-import type { BanFormat, Combo, Deck } from './types';
+import type { BanFormat, CardLang, Combo, Deck } from './types';
 
 export interface Settings {
   format: BanFormat;
+  /** Sprache von Kartennamen und -texten */
+  cardLang: CardLang;
   activeDeckId?: string;
   opponentDeckId?: string;
 }
@@ -19,12 +21,12 @@ export function loadState(): Persisted {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const p = JSON.parse(raw) as Partial<Persisted>;
-      return { decks: p.decks ?? [], combos: p.combos ?? [], settings: { format: 'tcg', ...p.settings } };
+      return { decks: p.decks ?? [], combos: p.combos ?? [], settings: { format: 'tcg', cardLang: 'de', ...p.settings } };
     }
   } catch {
     // privater Modus oder beschädigte Daten: mit leerem Zustand starten
   }
-  return { decks: [], combos: [], settings: { format: 'tcg' } };
+  return { decks: [], combos: [], settings: { format: 'tcg', cardLang: 'de' } };
 }
 
 export function saveState(s: Persisted) {

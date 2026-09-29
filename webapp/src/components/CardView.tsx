@@ -52,7 +52,7 @@ export function CardView({ id, size = 'sm', onClick, onContextMenu, onMouseEnter
       onContextMenu={onContextMenu}
       onMouseEnter={onMouseEnter}
       title={title ?? card?.name}
-      data-card={card?.name}
+      data-card={card?.nameEn}
       data-frame={card?.frameType}
       style={!showImg ? { background: FRAME_COLORS[card?.frameType ?? ''] ?? '#555' } : undefined}
     >

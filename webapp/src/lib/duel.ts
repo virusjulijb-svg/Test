@@ -350,7 +350,7 @@ export function declareAction(prev: DuelState, ctx: DuelCtx, action: PlayerActio
 
 /** Called by the Grave / Crossout Designator vorab gespielt. */
 function proactiveLock(s: DuelState, ctx: DuelCtx, card: Card) {
-  if (card.name === 'Called by the Grave') {
+  if (card.nameEn === 'Called by the Grave') {
     const target = s.bot.gy.find((i) => { const c = ctx.db.get(i.id); return c && isMonster(c); });
     if (!target) { log(s, 'system', 'Called by the Grave: kein Monster im Friedhof des Bots.', 'warn'); return; }
     moveCard(s, 'bot', target.uid, 'banished');
@@ -430,7 +430,7 @@ function answer(s: DuelState, ctx: DuelCtx, u: string, m: BotMove): boolean {
   if (isNameLockCard(card)) {
     s.blocked.push(m.cardId);
     log(s, 'system', `${name(ctx, m.cardId)} ist für den Rest des Zuges gesperrt.`, 'good');
-    if (card?.name === 'Called by the Grave') {
+    if (card?.nameEn === 'Called by the Grave') {
       // Called verbannt die Handtrap aus dem Friedhof des Bots
       const b = locate(s.bot, m.botUid);
       if (b) moveCard(s, 'bot', m.botUid, 'banished');

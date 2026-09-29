@@ -68,11 +68,11 @@ export function interruptionFor(card: Card | undefined, deck?: Deck): Interrupti
   const custom = deck?.botRoles[String(card.id)];
   if (custom === 'none') return undefined;
   if (custom) return INTERRUPTION_BY_ID.get(custom);
-  return BY_NAME.get(norm(card.name));
+  return BY_NAME.get(norm(card.nameEn));
 }
 
 export function isNameLockCard(card: Card | undefined) {
-  return !!card && NAME_LOCK_CARDS.some((n) => norm(n) === norm(card.name));
+  return !!card && NAME_LOCK_CARDS.some((n) => norm(n) === norm(card.nameEn));
 }
 
 /** Vorlagen für Gegner-Decks: nur das Interaktionspaket, der Rest sind Platzhalter. */

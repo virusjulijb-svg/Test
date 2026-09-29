@@ -1,3 +1,4 @@
+import type { GermanTexts } from './api';
 import type { BanFormat, Card } from './types';
 
 export const EXTRA_FRAMES = new Set([
@@ -9,9 +10,11 @@ export const FILLER_ID = 0;
 const FILLER: Card = {
   id: FILLER_ID,
   name: 'Engine-Karte (ohne Interaktion)',
+  nameEn: 'Engine card (no interaction)',
   type: 'Platzhalter',
   frameType: 'normal',
   desc: 'Steht für eine Karte des Gegners, die im ersten Zug nicht interagiert.',
+  descEn: '',
   race: '',
   imageIds: [],
 };
@@ -21,9 +24,11 @@ export const TOKEN_ID = -2;
 const TOKEN: Card = {
   id: TOKEN_ID,
   name: 'Primal Being Token',
+  nameEn: 'Primal Being Token',
   type: 'Token',
   frameType: 'token',
   desc: 'Spielmarke von Nibiru, the Primal Being (ATK/DEF entsprechen Nibiru).',
+  descEn: '',
   race: 'Rock',
   atk: 3000,
   def: 600,
@@ -68,12 +73,26 @@ export class CardDb {
   private byId = new Map<number, Card>();
   private byName = new Map<string, Card>();
 
-  constructor(cards: Card[]) {
-    this.cards = [...cards].sort((a, b) => a.name.localeCompare(b.name));
+  /** Anzahl der Karten mit deutscher Übersetzung (0 = Englisch) */
+  readonly germanCount: number;
+
+  constructor(cards: Card[], german?: GermanTexts | null) {
+    let germanCount = 0;
+    const localized = german
+      ? cards.map((c) => {
+          const de = german.get(c.id);
+          if (!de) return c;
+          germanCount++;
+          return { ...c, name: de.name, desc: de.desc || c.descEn, hasDe: true };
+        })
+      : cards;
+    this.germanCount = germanCount;
+    this.cards = [...localized].sort((a, b) => a.name.localeCompare(b.name, 'de'));
     for (const c of this.cards) {
       this.byId.set(c.id, c);
       for (const alt of c.imageIds) if (!this.byId.has(alt)) this.byId.set(alt, c);
-      this.byName.set(norm(c.name), c);
+      this.byName.set(norm(c.nameEn), c);
+      if (!this.byName.has(norm(c.name))) this.byName.set(norm(c.name), c);
     }
     this.byId.set(FILLER_ID, FILLER);
     this.byId.set(TOKEN_ID, TOKEN);
@@ -97,7 +116,10 @@ export class CardDb {
     const q = f.text?.trim().toLowerCase() ?? '';
     const out: Card[] = [];
     for (const c of this.cards) {
-      if (q && !c.name.toLowerCase().includes(q) && !(f.inDesc && c.desc.toLowerCase().includes(q))) continue;
+      if (
+        q && !c.name.toLowerCase().includes(q) && !c.nameEn.toLowerCase().includes(q) &&
+        !(f.inDesc && (c.desc.toLowerCase().includes(q) || c.descEn.toLowerCase().includes(q)))
+      ) continue;
       if (f.kind === 'monster' && (!isMonster(c) || isExtraDeckCard(c))) continue;
       if (f.kind === 'extra' && !isExtraDeckCard(c)) continue;
       if (f.kind === 'spell' && !isSpell(c)) continue;
@@ -116,10 +138,10 @@ export class CardDb {
     if (q) {
       // exakte und Präfix-Treffer zuerst
       const rank = (c: Card) => {
-        const n = c.name.toLowerCase();
-        return n === q ? 0 : n.startsWith(q) ? 1 : n.includes(q) ? 2 : 3;
+        const r = (n: string) => (n === q ? 0 : n.startsWith(q) ? 1 : n.includes(q) ? 2 : 3);
+        return Math.min(r(c.name.toLowerCase()), r(c.nameEn.toLowerCase()));
       };
-      out.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+      out.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, 'de'));
     }
     return out;
   }
