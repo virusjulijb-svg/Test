@@ -11,10 +11,10 @@ import ComboLab from './pages/ComboLab';
 import DuelBot from './pages/DuelBot';
 
 const TABS = [
-  { id: 'deck', label: 'Deckbuilder' },
-  { id: 'consistency', label: 'Consistency Lab' },
-  { id: 'combo', label: 'Combo Lab' },
-  { id: 'duel', label: 'Duell-Bot' },
+  { id: 'deck', label: 'Deckbuilder', short: 'Deck', icon: '▦' },
+  { id: 'consistency', label: 'Consistency Lab', short: 'Konsistenz', icon: '％' },
+  { id: 'combo', label: 'Combo Lab', short: 'Combos', icon: '⑂' },
+  { id: 'duel', label: 'Duell-Bot', short: 'Duell', icon: '⚔' },
 ] as const;
 type Tab = (typeof TABS)[number]['id'];
 
@@ -120,27 +120,31 @@ export default function App() {
     );
   }
 
-  const go = (t: Tab) => { location.hash = t; setTab(t); };
+  const go = (t: Tab) => { location.hash = t; setTab(t); window.scrollTo(0, 0); };
 
   return (
     <StoreContext.Provider value={store}>
       <header className="topbar">
         <div className="brand">YGO <span>Lab</span></div>
-        <nav>
+        <nav className="tabs" aria-label="Bereiche">
           {TABS.map((t) => (
-            <button key={t.id} className={`tab ${tab === t.id ? 'active' : ''}`} onClick={() => go(t.id)}>{t.label}</button>
+            <button key={t.id} className={`tab ${tab === t.id ? 'active' : ''}`} onClick={() => go(t.id)} aria-label={t.label} aria-current={tab === t.id ? 'page' : undefined}>
+              <span className="tab-icon" aria-hidden>{t.icon}</span>
+              <span className="tab-label">{t.label}</span>
+              <span className="tab-short" aria-hidden>{t.short}</span>
+            </button>
           ))}
         </nav>
         <div className="topbar-right">
-          <label>
-            Deck{' '}
-            <select value={store.activeDeck?.id ?? ''} onChange={(e) => store.setSettings({ activeDeckId: e.target.value })}>
+          <label className="deck-select">
+            <span className="hide-mobile">Deck </span>
+            <select aria-label="Aktives Deck" value={store.activeDeck?.id ?? ''} onChange={(e) => store.setSettings({ activeDeckId: e.target.value })}>
               {state.decks.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           </label>
           <label>
-            Banlist{' '}
-            <select value={state.settings.format} onChange={(e) => store.setSettings({ format: e.target.value as Settings['format'] })}>
+            <span className="hide-mobile">Banlist </span>
+            <select aria-label="Banlist" value={state.settings.format} onChange={(e) => store.setSettings({ format: e.target.value as Settings['format'] })}>
               <option value="tcg">TCG</option>
               <option value="ocg">OCG</option>
             </select>
@@ -158,7 +162,7 @@ export default function App() {
         {dbInfo} · Kartendaten und Bilder: <a href="https://ygoprodeck.com/api-guide/" target="_blank" rel="noreferrer">YGOPRODeck API</a>.
         Inoffizielles Fanprojekt, nicht mit Konami verbunden.
       </footer>
-      {toastMsg && <div className="toast" role="status">{toastMsg}</div>}
+      {toastMsg && <div className="toast" role="status" onClick={() => setToastMsg(null)}>{toastMsg}</div>}
     </StoreContext.Provider>
   );
 }

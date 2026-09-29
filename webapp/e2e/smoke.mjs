@@ -1,50 +1,13 @@
-// End-to-End-Rauchtest: startet `vite preview`, beantwortet API-Aufrufe mit dem Testdatensatz
-// und klickt die vier Bereiche durch. Screenshots landen in e2e/screenshots/.
-import { spawn, execSync } from 'node:child_process';
-import { readFileSync, mkdirSync } from 'node:fs';
-import { createRequire } from 'node:module';
+// End-to-End-Rauchtest (Desktop): klickt die vier Bereiche durch. Screenshots in e2e/screenshots/.
 import path from 'node:path';
-
-const require = createRequire(import.meta.url);
-let playwright;
-try {
-  playwright = require('playwright');
-} catch {
-  playwright = require(path.join(execSync('npm root -g').toString().trim(), 'playwright'));
-}
-
-const root = new URL('..', import.meta.url).pathname;
-const fixture = readFileSync(path.join(root, 'e2e/fixtures/cardinfo.json'), 'utf8');
-const shots = path.join(root, 'e2e/screenshots');
-mkdirSync(shots, { recursive: true });
+import { startServer, launch, shots, ydk, rep, PLAYER_MAIN, PLAYER_EXTRA } from './setup.mjs';
 
 const PORT = 4179;
-const server = spawn(path.join(root, 'node_modules/.bin/vite'), ['preview', '--port', String(PORT), '--strictPort'], { cwd: root, stdio: 'pipe' });
-await new Promise((res, rej) => {
-  server.stdout.on('data', (d) => d.toString().includes(String(PORT)) && res());
-  server.on('exit', (c) => rej(new Error(`preview beendet (${c})`)));
-  setTimeout(() => rej(new Error('preview startet nicht')), 20000);
-});
-
-const launchOpts = process.env.PLAYWRIGHT_BROWSERS_PATH ? {} : { executablePath: '/opt/pw-browsers/chromium' };
-const browser = await playwright.chromium.launch(launchOpts);
-const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-page.setDefaultTimeout(10000);
-const errors = [];
-page.on('pageerror', (e) => errors.push(e.message));
-page.on('console', (m) => m.type() === 'error' && !m.text().includes('404') && errors.push(m.text()));
-
-await page.route('https://db.ygoprodeck.com/**', (route) => {
-  const url = route.request().url();
-  if (url.includes('checkDBVer')) return route.fulfill({ json: [{ database_version: 'test-1', last_update: '2026-09-01' }] });
-  return route.fulfill({ body: fixture, contentType: 'application/json' });
-});
-await page.route('https://images.ygoprodeck.com/**', (route) => route.fulfill({ status: 404, body: '' }));
+const server = await startServer(PORT);
+const { browser, page, errors } = await launch({ viewport: { width: 1440, height: 1000 } });
 
 const step = (msg) => console.log(`• ${msg}`);
 const shot = (name) => page.screenshot({ path: path.join(shots, `${name}.png`), fullPage: true });
-const ydk = (main, extra = []) => ['#main', ...main, '#extra', ...extra, '!side', ''].join('\n');
-const rep = (id, n) => Array(n).fill(id);
 
 async function importDeck(name, text) {
   await page.getByRole('button', { name: 'Importieren' }).click();
@@ -65,12 +28,8 @@ try {
   step('Karte über die Suche hinzugefügt');
 
   // Spielerdeck importieren
-  const main = [
-    ...rep(7084129, 3), ...rep(14824019, 3), ...rep(14824020, 3), ...rep(46986414, 3), ...rep(97631303, 3),
-    ...rep(24224830, 3), ...rep(5318639, 3), ...rep(48680970, 3), 83764718, ...rep(65681983, 3),
-    ...rep(14558127, 3), ...rep(97268402, 3), ...rep(10045474, 3), ...rep(59438930, 3),
-  ];
-  await importDeck('Testdeck', ydk(main, [1861629, 84013237]));
+  const main = PLAYER_MAIN;
+  await importDeck('Testdeck', ydk(main, PLAYER_EXTRA));
   await page.getByText('Deck ist regelkonform').waitFor();
   step(`Spielerdeck importiert (${main.length} Karten, regelkonform)`);
   await shot('1-deckbuilder');
@@ -153,6 +112,15 @@ try {
   if (overflow > 1) throw new Error(`Horizontales Scrollen auf dem Handy: ${overflow}px`);
   await shot('6-mobile');
   step('Handy-Breite ohne horizontales Scrollen');
+
+  // Installierbarkeit: Manifest und Service Worker
+  const pwa = await page.evaluate(async () => {
+    const manifest = await (await fetch(document.querySelector('link[rel=manifest]').href)).json();
+    const reg = await Promise.race([navigator.serviceWorker.ready, new Promise((r) => setTimeout(() => r(null), 5000))]);
+    return { name: manifest.name, icons: manifest.icons.length, sw: !!reg?.active };
+  });
+  if (!pwa.sw || pwa.icons < 3) throw new Error(`App nicht installierbar: ${JSON.stringify(pwa)}`);
+  step('Manifest und Service Worker aktiv (installierbar)');
 
   if (errors.length) throw new Error(`Browser-Fehler:\n${errors.join('\n')}`);
   console.log('\nE2E: alles in Ordnung');

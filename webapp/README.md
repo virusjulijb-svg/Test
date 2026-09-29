@@ -9,6 +9,27 @@ Browser-App für Yu-Gi-Oh!-Spieler mit vier Bereichen:
 | **Combo Lab** | Combos Schritt für Schritt mit Kartenraster aufbauen, Effekt-Eigenschaften (Suche, Beschwörung aus Deck/Friedhof …) werden aus dem Kartentext vorgeschlagen, Alternativen („Wenn Ash Blossom …“) als Verzweigungen, Choke Points, Anzeige, welche Handtraps welchen Schritt treffen, Nibiru-Zähler, Droll-Warnung, JSON-Export |
 | **Duell-Bot** | Du beginnst, der Bot hält 5 Karten aus einem Gegner-Deck (z. B. importiertes Meta-Deck oder Vorlage) und setzt Handtraps ein; danach spielt er Board-Breaker gegen dein Endboard. Combos aus dem Combo Lab lassen sich Schritt für Schritt abspielen, bei einer Unterbrechung wird automatisch die passende Alternative gewählt. Auswertung und Verlauf über mehrere Duelle |
 
+## Handy und Tablet
+
+Die App passt sich an kleine Bildschirme und Touch-Bedienung an:
+
+- Navigation als Leiste am unteren Rand, kompakte Kopfzeile, Rücksicht auf Notch und Home-Indikator
+- Deckbuilder mit Umschalter *Decks / Deck / Suche*; Suchfilter einklappbar
+- Antippen einer Karte öffnet ein Blatt mit Kartentext und Plus/Minus für Main/Extra und Side Deck
+  (am Desktop gilt weiter: Klick fügt hinzu bzw. entfernt, Rechtsklick legt ins Side Deck)
+- Dialoge erscheinen als Blatt vom unteren Rand, Tippflächen sind mindestens 40 px hoch,
+  Eingabefelder nutzen 16 px Schrift (kein automatisches Zoomen in iOS)
+- Duell: kompaktes Spielfeld, Handkarten als seitlich wischbare Reihe, letzte Aktion direkt auf dem
+  Spielfeld, Protokoll einklappbar, Auswertung wird nach dem Zug automatisch angezeigt
+- **Installierbar** („Zum Home-Bildschirm“ in Safari bzw. „App installieren“ in Chrome): startet im
+  Vollbild; App-Dateien werden per Service Worker zwischengespeichert, die Kartendatenbank liegt in
+  IndexedDB. Ohne Netz startet die App daher mit den zuletzt geladenen Daten; Kartenbilder brauchen
+  weiterhin eine Verbindung, sofern der Browser sie nicht im Cache hat.
+
+Zum Testen auf dem eigenen Handy im selben WLAN: `npm run build && npx vite preview --host` und die
+angezeigte Netzwerk-Adresse öffnen. Der Service Worker (Offline-Start, Installation) funktioniert
+außerhalb von `localhost` nur über HTTPS, z. B. nach dem Hochladen des `dist/`-Ordners auf GitHub Pages.
+
 ## Starten
 
 Node.js 20 oder neuer:
@@ -19,7 +40,8 @@ npm install
 npm run dev        # Entwicklungsserver auf http://localhost:5173
 npm run build      # statischer Build in dist/ (läuft auch aus einem Unterordner, z. B. GitHub Pages)
 npm test           # Unit-Tests (Wahrscheinlichkeiten, Import/Export, Effekterkennung, Duell-Engine, Combo-Baum)
-npm run e2e        # Browser-Test mit Playwright (nach npm run build)
+npm run e2e        # Browser-Tests mit Playwright (nach npm run build): Desktop und Handy/Tablet mit Touch
+npm run icons      # App-Icons (PNG) aus public/icon.svg neu erzeugen
 ```
 
 Beim ersten Öffnen lädt die App die komplette Kartenliste einmalig von der
@@ -70,7 +92,9 @@ src/lib/        Logik ohne UI: API/Cache, Deckregeln, Wahrscheinlichkeit, Effekt
 src/pages/      Deckbuilder, ConsistencyLab, ComboLab, DuelBot
 src/components/ Kartenanzeige, Modal
 tests/          Vitest-Unit-Tests (nutzen e2e/fixtures/cardinfo.json)
-e2e/            Playwright-Rauchtest; die API wird dort mit einem kleinen Testdatensatz simuliert
+e2e/            Playwright-Tests (smoke.mjs Desktop, mobile.mjs Handy/Tablet); die API wird dort mit
+                einem kleinen Testdatensatz simuliert
+public/         Manifest, Icons und Service Worker für die Installation als App
 ```
 
 Die Texte im Testdatensatz `e2e/fixtures/cardinfo.json` sind gekürzt und nur für Tests gedacht;

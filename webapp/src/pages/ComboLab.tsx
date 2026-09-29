@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { CardSheet } from '../components/CardSheet';
 import { CardView } from '../components/CardView';
 import { Modal } from '../components/Modal';
 import { isExtraDeckCard } from '../lib/carddb';
@@ -178,7 +179,9 @@ function StepList({ steps, container, combo, analysis, onEdit, onAdd, depth = 0 
 }) {
   const { db, saveCombo } = useStore();
   const [branchFor, setBranchFor] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<number | null>(null);
   return (
+    <>
     <ol className={`steps depth-${Math.min(depth, 3)}`}>
       {steps.map((s) => {
         const a = analysis.get(s.id);
@@ -186,7 +189,7 @@ function StepList({ steps, container, combo, analysis, onEdit, onAdd, depth = 0 
         return (
           <li key={s.id} className={`step ${s.choke ? 'choke' : ''}`}>
             <div className="step-body">
-              <CardView id={s.cardId} size="xs" />
+              <CardView id={s.cardId} size="xs" onClick={() => setSheet(s.cardId)} />
               <div className="step-info">
                 <div className="step-title">
                   <b>{card?.name ?? 'Unbekannte Karte'}</b> · {ACTION_LABELS[s.action]}
@@ -245,6 +248,8 @@ function StepList({ steps, container, combo, analysis, onEdit, onAdd, depth = 0 
       })}
       <li className="add-step"><button className="ghost" onClick={() => onAdd(container)}>＋ Schritt hinzufügen</button></li>
     </ol>
+    {sheet != null && <CardSheet id={sheet} onClose={() => setSheet(null)} />}
+    </>
   );
 }
 

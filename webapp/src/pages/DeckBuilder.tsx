@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { CardSheet } from '../components/CardSheet';
 import { CardDetail, CardView } from '../components/CardView';
 import { Modal } from '../components/Modal';
 import type { SearchFilter } from '../lib/carddb';
@@ -7,6 +8,7 @@ import {
 } from '../lib/deck';
 import type { Deck, DeckZone } from '../lib/types';
 import { uid } from '../lib/util';
+import { useIsTouch } from '../hooks';
 import { useStore } from '../store';
 
 const ATTRIBUTES = ['DARK', 'LIGHT', 'EARTH', 'WATER', 'FIRE', 'WIND', 'DIVINE'];
@@ -18,6 +20,10 @@ export default function DeckBuilder() {
   const [page, setPage] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [sheet, setSheet] = useState<number | null>(null);
+  const [view, setView] = useState<'decks' | 'deck' | 'search'>('deck');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const touch = useIsTouch();
   const format = state.settings.format;
 
   const races = useMemo(() => [...new Set(db.cards.filter((c) => c.type.includes('Monster')).map((c) => c.race))].sort(), [db]);
@@ -79,9 +85,9 @@ export default function DeckBuilder() {
           <CardView
             key={`${id}-${i}`}
             id={id}
-            onClick={() => remove(id, z)}
-            onContextMenu={(e) => { e.preventDefault(); if (z !== 'side') { remove(id, z); add(id, 'side'); } }}
-            title={`${db.get(id)?.name} – Klick: entfernen${z !== 'side' ? ', Rechtsklick: ins Side Deck' : ''}`}
+            onClick={() => (touch ? setSheet(id) : remove(id, z))}
+            onContextMenu={(e) => { e.preventDefault(); if (touch) return; if (z !== 'side') { remove(id, z); add(id, 'side'); } }}
+            title={touch ? db.get(id)?.name : `${db.get(id)?.name} – Klick: entfernen${z !== 'side' ? ', Rechtsklick: ins Side Deck' : ''}`}
             className="hoverable"
             onMouseEnter={() => setHover(id)}
           />
@@ -91,16 +97,27 @@ export default function DeckBuilder() {
     </section>
   );
 
+  const count = (id: number, z: DeckZone) => deck[z].filter((x) => x === id).length;
+  const sheetCard = sheet != null ? db.get(sheet) : undefined;
+  const sheetMainZone: DeckZone = sheetCard && (deck.extra.includes(sheetCard.id) || /fusion|synchro|xyz|link/.test(sheetCard.frameType)) ? 'extra' : 'main';
+
   return (
-    <div className="builder">
-      <aside className="panel">
+    <div className={`builder view-${view}`}>
+      <div className="segmented show-mobile" role="tablist" aria-label="Ansicht">
+        <button role="tab" aria-selected={view === 'decks'} className={view === 'decks' ? 'on' : ''} onClick={() => setView('decks')}>Decks</button>
+        <button role="tab" aria-selected={view === 'deck'} className={view === 'deck' ? 'on' : ''} onClick={() => setView('deck')}>
+          Deck <span className="small">{deck.main.length}/{deck.extra.length}/{deck.side.length}</span>
+        </button>
+        <button role="tab" aria-selected={view === 'search'} className={view === 'search' ? 'on' : ''} onClick={() => setView('search')}>Suche</button>
+      </div>
+      <aside className="panel pane-decks">
         <div className="row wrap">
           <button onClick={create}>Neues Deck</button>
           <button onClick={() => setImportOpen(true)}>Importieren</button>
         </div>
         <ul className="deck-list">
           {state.decks.map((d) => (
-            <li key={d.id} className={d.id === deck.id ? 'active' : ''} onClick={() => setSettings({ activeDeckId: d.id })}>
+            <li key={d.id} className={d.id === deck.id ? 'active' : ''} onClick={() => { setSettings({ activeDeckId: d.id }); setView('deck'); }}>
               <span>{d.name}</span>
               <span className="muted small">{d.main.length}/{d.extra.length}/{d.side.length}</span>
             </li>
@@ -115,10 +132,10 @@ export default function DeckBuilder() {
           <button className="ghost small" onClick={download}>.ydk speichern</button>
           <button className="ghost small" onClick={copyYdke}>ydke:// kopieren</button>
         </div>
-        <CardDetail id={hover} />
+        <div className="hide-mobile"><CardDetail id={hover} /></div>
       </aside>
 
-      <section className="panel deck-view">
+      <section className="panel deck-view pane-deck">
         <h2>{deck.name}</h2>
         {errors.length > 0 ? (
           <ul className="errors">{errors.map((e) => <li key={e}>{e}</li>)}</ul>
@@ -126,10 +143,10 @@ export default function DeckBuilder() {
           <div className="ok">Deck ist regelkonform ({format.toUpperCase()}-Banlist).</div>
         )}
         {(['main', 'extra', 'side'] as DeckZone[]).map(zone)}
-        <p className="muted small">Klick auf eine Karte entfernt sie, Rechtsklick verschiebt sie ins Side Deck.</p>
+        <p className="muted small">{touch ? 'Tippe auf eine Karte für Details, Kopienzahl und Side Deck.' : 'Klick auf eine Karte entfernt sie, Rechtsklick verschiebt sie ins Side Deck.'}</p>
       </section>
 
-      <section className="panel search">
+      <section className="panel search pane-search">
         <input
           type="search"
           placeholder="Kartenname suchen …"
@@ -137,7 +154,10 @@ export default function DeckBuilder() {
           onChange={(e) => update({ text: e.target.value })}
           aria-label="Kartensuche"
         />
-        <div className="filters">
+        <button className="ghost small show-mobile filter-toggle" onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen}>
+          Filter {filtersOpen ? '▴' : '▾'}{activeFilters(filter) ? ` (${activeFilters(filter)})` : ''}
+        </button>
+        <div className={`filters ${filtersOpen ? 'open' : ''}`}>
           <label className="check"><input type="checkbox" checked={!!filter.inDesc} onChange={(e) => update({ inDesc: e.target.checked })} /> auch Kartentext</label>
           <select value={filter.kind} onChange={(e) => update({ kind: e.target.value as SearchFilter['kind'] })} aria-label="Kartenart">
             <option value="">Alle Arten</option>
@@ -170,14 +190,19 @@ export default function DeckBuilder() {
             <option value="Semi-Limited">semi-limitiert</option>
           </select>
         </div>
-        <div className="muted small">{results.length.toLocaleString('de-DE')} Treffer · Klick: hinzufügen, Rechtsklick: ins Side Deck</div>
+        <div className="muted small">
+          {results.length.toLocaleString('de-DE')} Treffer · {touch ? 'Tippen: Details und hinzufügen' : 'Klick: hinzufügen, Rechtsklick: ins Side Deck'}
+          <span className="show-mobile"> · im Deck: {deck.main.length}/{deck.extra.length}/{deck.side.length}</span>
+        </div>
         <div className="card-grid results">
           {shown.map((c) => (
             <CardView
               key={c.id}
               id={c.id}
-              onClick={() => add(c.id)}
-              onContextMenu={(e) => { e.preventDefault(); add(c.id, 'side'); }}
+              onClick={() => (touch ? setSheet(c.id) : add(c.id))}
+              onContextMenu={(e) => { e.preventDefault(); if (!touch) add(c.id, 'side'); }}
+              badge={count(c.id, 'main') + count(c.id, 'extra') + count(c.id, 'side') > 0
+                ? <span className="count-badge">{count(c.id, 'main') + count(c.id, 'extra') + count(c.id, 'side')}</span> : undefined}
               className="hoverable"
               onMouseEnter={() => setHover(c.id)}
             />
@@ -192,9 +217,25 @@ export default function DeckBuilder() {
         )}
       </section>
 
-      {importOpen && <ImportDialog onClose={() => setImportOpen(false)} />}
+      {importOpen && <ImportDialog onClose={() => { setImportOpen(false); setView('deck'); }} />}
+      {sheet != null && (
+        <CardSheet id={sheet} onClose={() => setSheet(null)}>
+          {([[sheetMainZone, sheetMainZone === 'extra' ? 'Extra Deck' : 'Main Deck'], ['side', 'Side Deck']] as [DeckZone, string][]).map(([z, label]) => (
+            <div key={z} className="stepper">
+              <span>{label}</span>
+              <button className="ghost" aria-label={`1 aus ${label} entfernen`} disabled={count(sheet, z) === 0} onClick={() => remove(sheet, z)}>−</button>
+              <b aria-label={`Kopien im ${label}`}>{count(sheet, z)}</b>
+              <button aria-label={`1 ins ${label}`} onClick={() => add(sheet, z === 'side' ? 'side' : 'auto')}>+</button>
+            </div>
+          ))}
+        </CardSheet>
+      )}
     </div>
   );
+}
+
+function activeFilters(f: SearchFilter): number {
+  return [f.inDesc, f.kind, f.attribute, f.race, f.level, f.archetype, f.banlist].filter(Boolean).length;
 }
 
 function ImportDialog({ onClose }: { onClose: () => void }) {

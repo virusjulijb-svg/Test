@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { CardSheet } from '../components/CardSheet';
 import { CardDetail, CardView } from '../components/CardView';
 import { Modal } from '../components/Modal';
 import { isExtraDeckCard, isMonster, isSpell, isTrap } from '../lib/carddb';
@@ -10,6 +11,7 @@ import {
 import { BOT_TEMPLATES, INTERRUPTIONS, INTERRUPTION_BY_ID, interruptionFor, templateToIds } from '../lib/interruptions';
 import { ALL_TAGS, splitEffects, TAG_LABELS } from '../lib/tagging';
 import type { ActionKind, ComboStep, Deck, EffectTag, Zone } from '../lib/types';
+import { useIsMobile, useIsTouch } from '../hooks';
 import { useStore } from '../store';
 import { ACTION_LABELS } from './ComboLab';
 
@@ -135,7 +137,7 @@ export default function DuelBot() {
               {agg.games} Duelle · Ø {agg.inter.toFixed(1).replace('.', ',')} Unterbrechungen · Ø Endboard {agg.board.toFixed(1).replace('.', ',')} Karten ·
               Ø {agg.surv.toFixed(1).replace('.', ',')} Karten nach dem Zug des Bots
             </p>
-            <table className="results-table small">
+            <div className="table-scroll"><table className="results-table small">
               <thead><tr><th>Datum</th><th>Deck</th><th>Gegner</th><th>Unterbr.</th><th>beantwortet</th><th>Endboard</th><th>übrig</th></tr></thead>
               <tbody>
                 {history.slice(0, 10).map((h, i) => (
@@ -145,7 +147,7 @@ export default function DuelBot() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </>
         )}
       </section>
@@ -220,6 +222,14 @@ function DuelBoard({ setup, onExit, onFinished }: { setup: Setup; onExit: () => 
   const [queue, setQueue] = useState<ComboStep[]>(combo?.steps ?? []);
   const [current, setCurrent] = useState<ComboStep | null>(null);
   const [recorded, setRecorded] = useState(false);
+  const [sheet, setSheet] = useState<number | null>(null);
+  const mobile = useIsMobile();
+  const touch = useIsTouch();
+
+  // Auf dem Handy liegt die Auswertung unter dem Spielfeld: dorthin scrollen
+  useEffect(() => {
+    if (s.phase === 'over' && mobile) document.querySelector('.summary')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [s.phase, mobile]);
 
   const restart = () => {
     setS(start());
@@ -302,7 +312,7 @@ function DuelBoard({ setup, onExit, onFinished }: { setup: Setup; onExit: () => 
   const p = s.pending;
 
   const cardClick = (inst: Inst, zone: Zone) => {
-    if (s.phase !== 'player' || s.pending) return;
+    if (s.phase !== 'player' || s.pending) { setSheet(inst.id); return; }
     setDialog({ type: 'menu', inst, zone });
   };
 
@@ -337,7 +347,7 @@ function DuelBoard({ setup, onExit, onFinished }: { setup: Setup; onExit: () => 
             {s.bot.hand.map((i) => <CardView key={i.uid} id={i.id} size="xs" faceDown={s.phase !== 'over'} />)}
           </div>
           <div className="field-row">
-            {s.bot.field.map((i) => <CardView key={i.uid} id={i.id} size="sm" onMouseEnter={() => setHover(i.id)} />)}
+            {s.bot.field.map((i) => <CardView key={i.uid} id={i.id} size="sm" onMouseEnter={() => setHover(i.id)} onClick={() => setSheet(i.id)} />)}
             {s.bot.field.length === 0 && <span className="muted small">Spielfeld des Bots leer</span>}
           </div>
         </div>
@@ -381,6 +391,11 @@ function DuelBoard({ setup, onExit, onFinished }: { setup: Setup; onExit: () => 
           </div>
         </div>
 
+        {s.log.length > 0 && (
+          <div className={`last-log show-mobile ${s.log[s.log.length - 1].tone ?? ''}`} aria-live="polite">
+            {s.log[s.log.length - 1].who === 'bot' ? 'Bot ' : s.log[s.log.length - 1].who === 'player' ? 'Du ' : ''}{s.log[s.log.length - 1].text}
+          </div>
+        )}
         {s.resolution && !p && <ResolutionBar s={s} onPick={(tag, u) => setS(resolveTag(s, ctx, tag, u))} />}
       </section>
 
@@ -403,8 +418,9 @@ function DuelBoard({ setup, onExit, onFinished }: { setup: Setup; onExit: () => 
           </div>
         )}
         {sum && <Summary sum={sum} onAgain={restart} />}
-        <CardDetail id={hover} />
-        <h3>Protokoll</h3>
+        {!touch && <CardDetail id={hover} />}
+        <details className="log-wrap" open={!mobile}>
+        <summary><h3>Protokoll <span className="muted small">({s.log.length})</span></h3></summary>
         <ol className="log">
           {s.log.slice().reverse().map((l, i) => (
             <li key={s.log.length - i} className={`${l.who} ${l.tone ?? ''}`}>
@@ -412,8 +428,10 @@ function DuelBoard({ setup, onExit, onFinished }: { setup: Setup; onExit: () => 
             </li>
           ))}
         </ol>
+        </details>
       </aside>
 
+      {sheet != null && <CardSheet id={sheet} onClose={() => setSheet(null)} />}
       {p && p.type !== 'evenly' && <PendingDialog s={s} onAnswer={answer} />}
       {p && p.type === 'evenly' && <EvenlyDialog s={s} keep={p.keep} onDone={(keep) => { const r = chooseEvenly(s, ctx, keep); setS(r); finishIfOver(r); }} />}
       {dialog?.type === 'menu' && (
@@ -439,7 +457,7 @@ function DuelBoard({ setup, onExit, onFinished }: { setup: Setup; onExit: () => 
         <MaterialDialog s={s} inst={dialog.inst} onClose={() => setDialog(null)} onSummon={(materials) => declare({ kind: 'specialSummon', uid: dialog.inst.uid, tags: [], materials, choke: current?.choke }, current)} />
       )}
       {dialog?.type === 'zone' && (
-        <ZoneDialog s={s} side={dialog.side} zone={dialog.zone} onClose={() => setDialog(null)} onPick={(inst) => dialog.side === 'player' && s.phase === 'player' && !p && setDialog({ type: 'menu', inst, zone: dialog.zone })} />
+        <ZoneDialog s={s} side={dialog.side} zone={dialog.zone} onClose={() => setDialog(null)} onPick={(inst) => (dialog.side === 'player' && s.phase === 'player' && !p ? setDialog({ type: 'menu', inst, zone: dialog.zone }) : setSheet(inst.id))} />
       )}
     </div>
   );

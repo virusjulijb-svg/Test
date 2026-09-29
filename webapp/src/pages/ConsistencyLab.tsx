@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { CardSheet } from '../components/CardSheet';
 import { CardView } from '../components/CardView';
 import { interruptionFor } from '../lib/interruptions';
 import { analyze, conditionMet, drawHand, handCounts, withCopies } from '../lib/probability';
@@ -14,6 +15,7 @@ export default function ConsistencyLab() {
   const [testHand, setTestHand] = useState<number[] | null>(null);
   const [testSize, setTestSize] = useState(5);
   const [extraDraws, setExtraDraws] = useState(0);
+  const [sheet, setSheet] = useState<number | null>(null);
 
   const deck = activeDeck;
   const first = useMemo(() => (deck ? analyze(deck, 5 + extraDraws) : null), [deck, extraDraws]);
@@ -89,7 +91,7 @@ export default function ConsistencyLab() {
             </select>
           </label>
         </div>
-        <table className="results-table">
+        <div className="table-scroll"><table className="results-table">
           <thead>
             <tr><th>Bedingung</th><th>Als Erster ({5 + extraDraws} Karten)</th><th>Als Zweiter ({6 + extraDraws} Karten)</th></tr>
           </thead>
@@ -107,11 +109,11 @@ export default function ConsistencyLab() {
               <td><Bar p={second.anyCondition} /></td>
             </tr>
           </tbody>
-        </table>
+        </table></div>
         {!first.exact && <p className="muted small">Sehr viele Kategorien: Werte per Monte-Carlo-Simulation (200.000 Hände) geschätzt.</p>}
 
         <h3>Verteilung pro Kategorie (als Erster)</h3>
-        <table className="results-table">
+        <div className="table-scroll"><table className="results-table">
           <thead><tr><th>Kategorie</th><th>Karten</th><th>0</th><th>1</th><th>2+</th><th>≥1 als Zweiter</th></tr></thead>
           <tbody>
             {deck.categories.map((c) => {
@@ -129,7 +131,7 @@ export default function ConsistencyLab() {
               );
             })}
           </tbody>
-        </table>
+        </table></div>
       </section>
 
       <section className="panel">
@@ -182,7 +184,7 @@ export default function ConsistencyLab() {
           <tbody>
             {counts.map(([id, n]) => (
               <tr key={id}>
-                <td><CardView id={id} size="xs" /></td>
+                <td><CardView id={id} size="xs" onClick={() => setSheet(id)} /></td>
                 <td className="name">{db.get(id)?.name}<div className="muted small">{n}×</div></td>
                 <td>
                   <div className="row wrap">
@@ -196,7 +198,7 @@ export default function ConsistencyLab() {
                     })}
                   </div>
                 </td>
-                <td><button className="ghost small" onClick={() => setRatioCard(id)} title="Kopienzahl vergleichen">Ratio</button></td>
+                <td><button className="ghost small" onClick={() => { setRatioCard(id); document.getElementById('ratio')?.scrollIntoView({ behavior: 'smooth' }); }} title="Kopienzahl vergleichen">Ratio</button></td>
               </tr>
             ))}
           </tbody>
@@ -204,11 +206,11 @@ export default function ConsistencyLab() {
       </section>
 
       <section className="panel">
-        <h3>Ratio-Vergleich</h3>
+        <h3 id="ratio">Ratio-Vergleich</h3>
         {ratio && ratioCard != null ? (
           <>
             <div className="row"><CardView id={ratioCard} size="xs" /> <b>{db.get(ratioCard)?.name}</b></div>
-            <table className="results-table">
+            <div className="table-scroll"><table className="results-table">
               <thead><tr><th>Kopien</th><th>Deckgröße</th><th>Mind. eine Bedingung (Erster)</th><th>(Zweiter)</th></tr></thead>
               <tbody>
                 {ratio.map((r) => (
@@ -217,7 +219,7 @@ export default function ConsistencyLab() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             <p className="muted small">Die Deckgröße ändert sich mit der Kopienzahl; die übrigen Karten bleiben gleich.</p>
           </>
         ) : (
@@ -231,7 +233,7 @@ export default function ConsistencyLab() {
         </div>
         {testHand && hc && (
           <>
-            <div className="hand">{testHand.map((id, i) => <CardView key={i} id={id} size="md" />)}</div>
+            <div className="hand">{testHand.map((id, i) => <CardView key={i} id={id} size="md" onClick={() => setSheet(id)} />)}</div>
             <ul className="checklist">
               {deck.conditions.map((c) => (
                 <li key={c.id} className={conditionMet(c, hc) ? 'yes' : 'no'}>{conditionMet(c, hc) ? '✓' : '✗'} {c.name}</li>
@@ -241,6 +243,7 @@ export default function ConsistencyLab() {
           </>
         )}
       </section>
+      {sheet != null && <CardSheet id={sheet} onClose={() => setSheet(null)} />}
     </div>
   );
 }

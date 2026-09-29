@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -p .",
-    "e2e": "node e2e/smoke.mjs",
+    "e2e": "node e2e/smoke.mjs && node e2e/mobile.mjs",
+    "icons": "node scripts/render-icons.mjs",
     "mirror-images": "node scripts/mirror-images.mjs"
   },
   "dependencies": {
